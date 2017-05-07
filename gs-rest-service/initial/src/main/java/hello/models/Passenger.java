@@ -54,12 +54,14 @@ public class Passenger implements Serializable {
     public Passenger() {
     }
  
-    public Passenger(String firstname, String lastname, int age,String gender,String phone) {
+    public Passenger(String firstname, String lastname, int age,String gender,String phone, List<Flight> flight, List<Reservation> reservation) {
         this.firstname = firstname;
         this.lastname = lastname;
         this.age = age;
         this.gender = gender;
         this.phone = phone;
+        this.flight= flight;
+        this.reservation=reservation;
     }
 
     public int getId() {

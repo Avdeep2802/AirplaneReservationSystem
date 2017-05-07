@@ -6,6 +6,8 @@ import hello.dao.ReservationDao;
 import hello.models.Flight;
 import hello.models.Reservation;
 import hello.models.Passenger;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,10 +19,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 import java.util.*;
-import oracle.jdbc.proxy.annotation.Post;
+import javax.servlet.http.HttpServletResponse;
+//import oracle.jdbc.proxy.annotation.Post;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 
@@ -54,7 +58,7 @@ public String randomIdgen(){
 
   }
 
-@RequestMapping(method=RequestMethod.POST)
+@RequestMapping(method=RequestMethod.POST, produces=MediaType.APPLICATION_XML_VALUE)
 public ResponseEntity<Reservation> createReservation(@RequestParam Map<String,String> requestParams) throws Exception{
   
   String passenger_id= requestParams.get("passengerId");
@@ -70,12 +74,21 @@ public ResponseEntity<Reservation> createReservation(@RequestParam Map<String,St
   
   Flight flight;
   int price=0;
+  int seatsLeft = 0;
   for(int i=0;i<array.length;i++){
     flight = flightDao.findBynumber(array[i]);
     List <Passenger> passenger_list= flight.getPassenger();
     passenger_list.add(passenger);
     flight.setPassenger(passenger_list);
     price= price+ flight.getPrice();
+    seatsLeft= flight.getSeatsLeft() -1;
+    if(seatsLeft<0){
+          throw new Exception("Sorry, the capacity of the flight has exeeded. -400");
+        }
+    flight.setSeatsLeft(seatsLeft);
+    flightDao.save(flight);
+
+
     list.add(flight);
   }
     System.out.println("flight list : " + list);
@@ -164,6 +177,28 @@ public ResponseEntity<Reservation> updatereservation(@PathVariable String num,@R
 }
 
 
+
+@ExceptionHandler(Exception.class)
+@ResponseBody
+public Map<String,String> errorResponse(Exception ex, HttpServletResponse response){
+Map<String,String> errorMap = new HashMap<String,String>();
+String ans=ex.getMessage();
+String[] a=ans.split("-");
+String msg=a[0];
+String code=a[1];
+errorMap.put("code",code);
+errorMap.put("msg",msg);
+StringWriter sw = new StringWriter();
+PrintWriter pw = new PrintWriter(sw);
+ex.printStackTrace(pw);
+String stackTrace = sw.toString();
+//errorMap.put("errorStackTrace", stackTrace);
+response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+return errorMap;
+}
+
+
+
   @RequestMapping(value = "{number}", method=RequestMethod.GET)
   public ResponseEntity<Reservation> getReservation(@PathVariable("number") String number) throws Exception
   {
@@ -207,7 +242,7 @@ public String deleteReservation(@PathVariable("orderNumber") String orderNumber)
 }
 
 
-    @RequestMapping(produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET)
+    @RequestMapping(produces = MediaType.APPLICATION_XML_VALUE, method = RequestMethod.GET)
     public ResponseEntity<List<Reservation>> SearchReservation(@RequestParam Map<String, String> requestParams) throws Exception {
         String passenger_id = requestParams.get("passengerId");
         String from = requestParams.get("from");
@@ -319,7 +354,32 @@ public String deleteReservation(@PathVariable("orderNumber") String orderNumber)
         return ResponseEntity.ok(listOfReservations);
 
     }
-
+    
+    
+//    
+//@RequestMapping(value="{orderNumber}",method = RequestMethod.DELETE)
+//  @ResponseBody
+//  public String delete(@PathVariable("orderNumber") String orderNumber) throws Exception{
+//      
+//    Reservation reservation = reservationDao.findByorderNumber(orderNumber);
+//      if(reservation==null){
+//        throw new Exception("Reservation with orderNumber "+orderNumber+" does not exist.-404");
+//      }
+//      else{
+//      
+//      List<Flight> flightList=reservation.getFlight();
+//
+//      int seatsLeft=0;
+//      for(Flight flight : flightList){
+//        seatsLeft=flight.getSeatsLeft()+1;
+//        flight.setSeatsLeft(seatsLeft);
+//        flightDao.save(flight);
+//      }
+//      reservationDao.delete(reservation);
+//      // getSeatsLeft()+1;
+//      throw new Exception("Reservation orderNumber "+orderNumber+" deleted successfully.-200");
+//    }
+//  }
 
 
 

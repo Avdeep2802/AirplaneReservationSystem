@@ -69,9 +69,8 @@ private List<Passenger> passenger;
     
     
    @ManyToMany(mappedBy="flight")
-      @JsonIgnore
-
-    private List<Reservation> reservation; 
+  // @JsonIgnore
+   private List<Reservation> reservation; 
     
     public Flight(List<Passenger> passenger){
 
